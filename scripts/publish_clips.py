@@ -1,6 +1,6 @@
 import os, subprocess, whisper, yaml, traceback, time, threading
 from moviepy.editor import VideoFileClip, AudioFileClip, TextClip, CompositeVideoClip
-from moviepy.video.fx import loop as moviepy_loop
+import moviepy.video.fx as vfx
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -41,7 +41,7 @@ def make_video_segment(audio_path, start, end, text, out_path):
     # Background loop
     clip = VideoFileClip(BACKGROUND_VIDEO)
     if clip.duration < duration:
-        clip = moviepy_loop(clip, duration=duration)
+        clip = vfx.loop(clip, duration=duration)
     clip = clip.subclip(0, duration)
     audio = AudioFileClip(tmp_audio)
 
