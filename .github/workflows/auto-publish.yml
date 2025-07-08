@@ -1,0 +1,29 @@
+# Workflow to automatically publish music clips to YouTube
+name: Auto-Publish Music Clips
+
+on:
+  push:
+    paths:
+      - 'songs/**'
+
+jobs:
+  build_and_publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies (Python, FFmpeg)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg python3-pip
+          pip3 install openai-whisper moviepy google-api-python-client \
+            google-auth-httplib2 google-auth-oauthlib
+
+      - name: Execute publish script
+        env:
+          YOUTUBE_SERVICE_ACCOUNT: ${{ secrets.YOUTUBE_SERVICE_ACCOUNT }}
+          OPENAI_API_KEY:        ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python3 scripts/publish_clips.py
