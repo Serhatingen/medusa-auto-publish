@@ -15,7 +15,7 @@ MODEL = whisper.load_model("base")
 # === YOUTUBE SETUP ===
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 credentials = service_account.Credentials.from_service_account_info(
-    yaml.safe_load(os.environ["YOUTUBE_CLIENT_SECRETS"]),
+    yaml.safe_load(os.environ["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"]),
     scopes=SCOPES
 )
 youtube = build('youtube', 'v3', credentials=credentials)
