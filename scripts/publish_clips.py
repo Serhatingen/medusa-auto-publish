@@ -1,8 +1,5 @@
 
 
-# From your local repo root
-mkdir -p scripts
-cat > scripts/publish_clips.py << 'EOF'
 #!/usr/bin/env python3
 """
 Script to:
