@@ -1,68 +1,40 @@
-
-
-#!/usr/bin/env python3
-
-
 import os
-import subprocess
 import whisper
+import subprocess
 from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import yaml
 
-# -----------------------------
-# Configuration
-# -----------------------------
-INPUT_AUDIO_DIR = 'songs'
-OUTPUT_VIDEO_DIR = 'output'
-BLANK_BG_VIDEO = 'blank_bg.mp4'
-WHISPER_MODEL = 'base'
+# Load Whisper model once
+MODEL = whisper.load_model("base")
 
-# Load Whisper model
-model = whisper.load_model(WHISPER_MODEL)
+def transcribe_with_timestamps(audio_path):
+    # ← four spaces here under the def
+    result = MODEL.transcribe(audio_path, word_timestamps=True)
+    segments = result["segments"]
+    # pick the longest segment (usually chorus)
+    segments.sort(key=lambda s: s["end"] - s["start"], reverse=True)
+    return segments[0]["start"], segments[0]["end"], result["text"]
 
-# YouTube API setup
-YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
-service_account_info = yaml.safe_load(os.environ["YOUTUBE_SERVICE_ACCOUNT"])
-credentials = service_account.Credentials.from_service_account_info(
-    service_account_info, scopes=YOUTUBE_SCOPES
-)
-youtube = build('youtube', 'v3', credentials=credentials)
-
-
-def transcribe_and_get_longest_segment(audio_path):
-
-result = model.transcribe(audio_path, word_timestamps=True)
-segments = result.get('segments', [])
-segments.sort(key=lambda s: s['end'] - s['start'], reverse=True)
-longest = segments[0]
-start = longest['start']
-end = longest['end']
-text = result.get('text', '').strip()
-return start, end, text
-
-def create_video_clip(audio_path, start, end, text, output_path):
-
-duration = end - start
-temp_audio = output_path.replace('.mp4', '.wav')
-
-  subprocess.run([
-      'ffmpeg', '-y', '-i', audio_path,
-      '-ss', str(start), '-t', str(duration),
-      temp_audio
-  ], check=True)
-
-  bg_clip = VideoFileClip(BLANK_BG_VIDEO).subclip(0, duration)
-
-  text_clip = TextClip(
-      text, fontsize=40, font='Arial', method='caption',
-      size=(bg_clip.w * 0.8, None)
-  ).set_position(('center', 'bottom')).set_duration(duration)
-
-  video = CompositeVideoClip([bg_clip, text_clip])
-  video = video.set_audio(video.audio.set_audio(temp_audio))
-  video.write_videofile(output_path, fps=24)
+def make_video_segment(audio_path, start, end, text, output_path):
+    duration = end - start
+    tmp_audio = output_path.replace('.mp4', '.wav')
+    subprocess.run([
+        "ffmpeg", "-y", "-i", audio_path,
+        "-ss", str(start), "-t", str(duration),
+        tmp_audio
+    ])
+    clip = VideoFileClip("blank_bg.mp4").subclip(0, duration)
+    txt = TextClip(text,
+                   fontsize=40,
+                   font="Arial",
+                   method="caption",
+                   size=(clip.w * 0.8, None))
+    txt = txt.set_position(("center", "bottom")).set_duration(duration)
+    video = CompositeVideoClip([clip, txt])
+    video = video.set_audio(clip.set_audio(tmp_audio).audio)
+    video.write_videofile(output_path, fps=24)
 
 def upload_clip_to_youtube(video_file):
 
