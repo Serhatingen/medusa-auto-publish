@@ -6,25 +6,23 @@ on:
       - 'songs/**'
 
 jobs:
-  build-and-render:
+  render:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Set up Python and FFmpeg
+      - name: Set up Python, FFmpeg, and ImageMagick
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg python3-pip imagemagick
+          sudo apt-get install -y ffmpeg imagemagick python3-pip
           pip3 install --upgrade pip
-          python3 -m pip install openai-whisper moviepy==1.0.3 pyyaml
+          pip3 install openai-whisper moviepy==1.0.3
 
-      - name: Run render script
-        run: |
-          python3 scripts/publish_clips.py
+      - name: Run publish script
+        run: python3 scripts/publish_clips.py
 
-      - name: Upload output video(s) as artifacts
+      - name: Upload video artifacts
         uses: actions/upload-artifact@v4
         with:
           name: rendered-clips
