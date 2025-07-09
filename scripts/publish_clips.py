@@ -52,9 +52,33 @@ def process_song(fname):
         print(f"🎶 Processing {fname}...")
         path = os.path.join(SONGS_DIR, fname)
         out_mp4 = os.path.join(OUTPUT_DIR, fname.rsplit('.', 1)[0] + '_clip.mp4')
-        start, end, full_text = transcribe_with_timestamps(path)
+        try:
+            # First attempt: use original audio
+            start, end, full_text = transcribe_with_timestamps(path)
+        except Exception as e:
+            print(f"⚠️ Initial transcription failed for {fname}: {e}")
+            # Try converting audio and retrying once
+            tmp_wav = os.path.join(OUTPUT_DIR, fname.rsplit('.', 1)[0] + '_tmp.wav')
+            print(f"🔁 Attempting conversion to 16kHz mono WAV and retry...")
+            subprocess.run([
+                'ffmpeg', '-y', '-i', path, '-ar', '16000', '-ac', '1', tmp_wav
+            ], check=True)
+            try:
+                start, end, full_text = transcribe_with_timestamps(tmp_wav)
+                path = tmp_wav  # Use the converted WAV for the next steps
+            except Exception as e2:
+                print(f"❌ Failed again after conversion: {e2}")
+                traceback.print_exc()
+                # Cleanup temp file if exists
+                if os.path.exists(tmp_wav):
+                    os.remove(tmp_wav)
+                return
         make_video_segment(path, start, end, full_text, out_mp4)
         print(f"✅ Video rendered and saved at: {out_mp4}")
+        # Cleanup temp file if exists
+        tmp_wav = os.path.join(OUTPUT_DIR, fname.rsplit('.', 1)[0] + '_tmp.wav')
+        if os.path.exists(tmp_wav):
+            os.remove(tmp_wav)
     except Exception as e:
         print(f"❌ Error processing {fname}: {e}")
         traceback.print_exc()
