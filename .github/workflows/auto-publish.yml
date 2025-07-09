@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python and FFmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg python3-pip
+          sudo apt-get install -y ffmpeg python3-pip imagemagick
           pip3 install --upgrade pip
           python3 -m pip install openai-whisper moviepy==1.0.3 pyyaml
 
