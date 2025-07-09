@@ -2,21 +2,17 @@ import os, subprocess, whisper, traceback
 from moviepy.editor import VideoFileClip, AudioFileClip, TextClip, CompositeVideoClip
 from moviepy.video.fx.all import loop
 
-# === CONFIGURATION ===
 SONGS_DIR = 'songs'
 OUTPUT_DIR = 'output'
 BACKGROUND_VIDEO = 'blank_bg.mp4'
 MODEL = whisper.load_model("base")
 
-# === TRANSCRIBE WITH FALLBACK ===
 def transcribe_with_timestamps(audio_path):
     result = MODEL.transcribe(audio_path, word_timestamps=True)
     segments = result["segments"]
     segments.sort(key=lambda s: s["end"] - s["start"], reverse=True)
-    text = result["text"].strip()
-    return segments[0]['start'], segments[0]['end'], text
+    return segments[0]['start'], segments[0]['end'], result["text"].strip()
 
-# === VIDEO SEGMENT CREATION ===
 def make_video_segment(audio_path, start, end, text, out_path):
     duration = end - start
     tmp_audio = out_path.replace('.mp4', '.wav')
@@ -35,17 +31,14 @@ def make_video_segment(audio_path, start, end, text, out_path):
     audio = AudioFileClip(tmp_audio)
 
     display_text = text[:200] + ('…' if len(text) > 200 else '')
+
     try:
         txt = TextClip(display_text, fontsize=40, method='caption', color='white',
-                       size=(int(clip.w * 0.8), None))
-    except Exception as e:
-        print(f"⚠️ Text overlay failed (ImageMagick issue?), using no text. Error: {e}")
-        txt = None
-
-    if txt:
+                       size=(clip.w * 0.8, None))
         txt = txt.set_position(('center', 'bottom')).set_duration(duration).fadein(0.5).fadeout(0.5)
         video = CompositeVideoClip([clip, txt]).set_audio(audio)
-    else:
+    except Exception as e:
+        print(f"⚠️ Text overlay failed, rendering without text: {e}")
         video = clip.set_audio(audio)
 
     video.write_videofile(out_path, fps=24, codec='libx264', audio_codec='aac')
@@ -53,7 +46,6 @@ def make_video_segment(audio_path, start, end, text, out_path):
     if os.path.exists(tmp_audio):
         os.remove(tmp_audio)
 
-# === MAIN PROCESS ===
 def process_song(fname):
     if not fname.lower().endswith(('.mp3', '.wav')):
         return
