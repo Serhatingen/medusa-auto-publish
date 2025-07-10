@@ -1,4 +1,4 @@
-name: Render Music Clips
+name: Render Music Clips (Alternative)
 
 on:
   push:
@@ -10,41 +10,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Set up Python, FFmpeg, and ImageMagick
+      - name: Install FFmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg python3-pip imagemagick
-          pip3 install --upgrade pip
-          pip3 install openai-whisper moviepy==1.0.3
-
-          # Fix ImageMagick Security Policy
-          sudo sed -i 's/^.*policy.*coder.*none.*PDF.*//' /etc/ImageMagick-6/policy.xml
-          sudo sed -i 's/^.*policy.*coder.*none.*TEXT.*//' /etc/ImageMagick-6/policy.xml
-          sudo sed -i 's/^.*policy.*coder.*none.*LABEL.*//' /etc/ImageMagick-6/policy.xml
-          sudo sed -i 's/^.*policy.*coder.*none.*PNG.*//' /etc/ImageMagick-6/policy.xml
-
-      - name: Cache Python dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-cache-v1
-          restore-keys: |
-            ${{ runner.os }}-pip-cache-
-
-      - name: Cache Whisper models
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/whisper
-          key: ${{ runner.os }}-whisper-base-v1
-          restore-keys: |
-            ${{ runner.os }}-whisper-base-
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version  # FFmpeg kurulumunu doğrula
 
       - name: Run publish script
-        run: python3 scripts/publish_clips.py
+        run: python scripts/publish_clips_alt.py
+        env:
+          PYTHONUNBUFFERED: 1
 
       - name: Upload video artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: rendered-clips
